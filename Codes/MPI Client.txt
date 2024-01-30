@@ -1,0 +1,62 @@
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using MPI;
+
+namespace MPI_Client
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            using (new MPI.Environment(ref args))
+            {
+                Intracommunicator world = Communicator.world;
+
+                Console.WriteLine("=========================================");
+                Console.WriteLine("|\t\tMPI CLIENT\t\t|");
+                Console.WriteLine("=========================================");
+
+                if (world.Rank == 0)
+                {
+                    IPEndPoint ipe = new IPEndPoint(IPAddress.Parse("192.168.0.137"), 12000);
+                    Socket s = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    s.Connect(ipe);
+
+                    byte[] buffer = new byte[200];
+                    s.Receive(buffer);
+                    string welcomeText = Encoding.ASCII.GetString(buffer);
+                    Console.WriteLine(welcomeText);
+
+                    string connectionText = "Connection Established\n";
+                    Console.WriteLine(connectionText);
+                    byte[] bufferC = Encoding.ASCII.GetBytes(connectionText);
+                    s.Send(bufferC);
+
+                    Thread receiveThread = new Thread(() =>
+                    {
+                        while (true)
+                        {
+                            byte[] buffer1 = new byte[200];
+                            s.Receive(buffer1);
+                            string msg1 = Encoding.ASCII.GetString(buffer1);
+                            Console.WriteLine(msg1);
+                        }
+                    });
+                    receiveThread.Start();
+
+                    int a = 1;
+                    while (a != 0)
+                    {
+                        string msg2 = "MPI Client: " + Console.ReadLine();
+                        byte[] buffer2 = Encoding.ASCII.GetBytes(msg2);
+                        s.Send(buffer2);
+                    }
+                }
+            }
+        }
+    }
+}
+

@@ -1,0 +1,79 @@
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using MPI;
+
+namespace RelayServerMPI
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("=========================================");
+            Console.WriteLine("|\t\tRELAY SERVER\t\t|");
+            Console.WriteLine("=========================================");
+
+            using (new MPI.Environment(ref args))
+            {
+                Intracommunicator world = Communicator.world;
+
+                if (world.Rank == 0)
+                {
+                    IPEndPoint ipe = new IPEndPoint(IPAddress.Parse("172.25.240.1"), 12000);
+                    Socket s = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    s.Connect(ipe);
+
+                    IPEndPoint ipe2 = new IPEndPoint(IPAddress.Parse("172.25.240.1"), 12000);
+                    Socket s2 = new Socket(ipe2.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    s2.Bind(ipe2);
+                    s2.Listen(1);
+                    Socket c = s2.Accept();
+
+                    string logFileName = "message_log.txt";
+                    int a = 1;
+                    while (a != 0)
+                    {
+                        byte[] buffer = new byte[200];
+                        s.Receive(buffer);
+                        string msg = Encoding.ASCII.GetString(buffer);
+                        Console.WriteLine(msg);
+                        LogMessage(logFileName, msg);
+
+                        string msg2 = msg;
+                        byte[] buffer2 = Encoding.ASCII.GetBytes(msg2);
+                        c.Send(buffer2);
+
+                        byte[] buffer3 = new byte[200];
+                        c.Receive(buffer3);
+                        string msg3 = Encoding.ASCII.GetString(buffer3);
+                        Console.WriteLine(msg3);
+                        LogMessage(logFileName, msg3);
+
+                        string msg4 = msg3;
+                        byte[] buffer4 = Encoding.ASCII.GetBytes(msg4);
+                        s.Send(buffer4);
+                    }
+                }
+            }
+        }
+
+        static void LogMessage(string fileName, string message)
+        {
+            string logEntry = $"[{DateTime.Now}] - {message}";
+
+            try
+            {
+                using (StreamWriter sw = File.AppendText(fileName))
+                {
+                    sw.WriteLine(logEntry);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error writing to log file: {ex.Message}");
+            }
+        }
+    }
+}

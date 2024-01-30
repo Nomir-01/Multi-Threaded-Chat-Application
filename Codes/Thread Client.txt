@@ -1,0 +1,49 @@
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+
+namespace ConsoleApp2
+{
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("=========================================");
+            Console.WriteLine("|\t\tCLIENT\t\t\t|");
+            Console.WriteLine("=========================================");
+
+            IPEndPoint ipe = new IPEndPoint(IPAddress.Parse("172.25.240.1"), 12000);
+            Socket s = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            s.Connect(ipe);
+            byte[] buffer = new byte[25];
+            s.Receive(buffer);
+            string welcomeText = Encoding.ASCII.GetString(buffer);
+            Console.WriteLine(welcomeText);
+            string connectionText = "Connection Established\n";
+            Console.WriteLine(connectionText);
+            byte[] bufferC = Encoding.ASCII.GetBytes(connectionText);
+            s.Send(bufferC);
+            Thread receiveThread = new Thread(() =>
+            {
+                while (true)
+                {
+                    byte[] buffer1 = new byte[200];
+                    s.Receive(buffer1);
+                    string msg1 = Encoding.ASCII.GetString(buffer1);
+                    Console.WriteLine(msg1);
+                }
+            });
+            receiveThread.Start();
+            int a = 1;
+            while (a != 0)
+            {
+                //Console.Write("Client:");
+                string msg2 = "Client: " + Console.ReadLine();
+                byte[] buffer2 = Encoding.ASCII.GetBytes(msg2);
+                s.Send(buffer2);
+            }
+        }
+    }
+}

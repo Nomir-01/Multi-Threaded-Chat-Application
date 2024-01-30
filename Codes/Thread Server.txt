@@ -1,0 +1,46 @@
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+
+namespace ConsoleApp1
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("=========================================");
+            Console.WriteLine("|\t\tSERVER\t\t\t|");
+            Console.WriteLine("=========================================");
+
+            IPEndPoint ipe = new IPEndPoint(IPAddress.Parse("172.25.240.1"), 12000);
+            Socket S = new Socket(ipe.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            S.Bind(ipe);
+            S.Listen(1);
+            Socket C = S.Accept();
+            string welcomeText = "Welcome To Server";
+            byte[] buffer = Encoding.ASCII.GetBytes(welcomeText);
+            C.Send(buffer);
+            Thread receiveThread = new Thread(() =>
+            {
+                while (true)
+                {
+                    byte[] buffer1 = new byte[200];
+                    C.Receive(buffer1);
+                    string msg1 = Encoding.ASCII.GetString(buffer1);
+                    Console.WriteLine(msg1);
+                }
+            });
+            receiveThread.Start();
+            int a = 1;
+            while (a != 0)
+            {
+                //Console.Write("Server: ");
+                string msg2 = "Server: "+Console.ReadLine();
+                byte[] buffer2 = Encoding.ASCII.GetBytes(msg2);
+                C.Send(buffer2);
+            }
+        }
+    }
+}
